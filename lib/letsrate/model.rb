@@ -7,6 +7,7 @@ module Letsrate
       rates(dimension).build do |r|
         r.stars = stars
         r.rater_id = user_id
+        r.dimension = dimension
         r.save!          
       end      
       update_rate_average(stars, dimension)
@@ -42,6 +43,7 @@ module Letsrate
   end        
       
   def can_rate?(user_id, dimension=nil)
+    return true if dimension == "calificacion"
     val = self.connection.select_value("select count(*) as cnt from rates where rateable_id=#{self.id} and rateable_type='#{self.class.name}' and rater_id=#{user_id} and dimension='#{dimension}'").to_i
     if val == 0
       true
@@ -73,23 +75,23 @@ module Letsrate
     end    
     
     def letsrate_rateable(*dimensions)
-      has_many :rates_without_dimension, :as => :rateable, :class_name => "Rate", :dependent => :destroy, :conditions => {:dimension => nil}
+      has_many :rates_without_dimension, :as => :rateable, :class_name => "Rate", :dependent => :destroy, :conditions => "dimension is null"
       has_many :raters_without_dimension, :through => :rates_without_dimension, :source => :rater  
       
       has_one :rate_average_without_dimension, :as => :cacheable, :class_name => "RatingCache", 
-              :dependent => :destroy, :conditions => {:dimension => nil}
+              :dependent => :destroy, :conditions => "dimension is null"
       
 
       dimensions.each do |dimension|        
         has_many "#{dimension}_rates", :dependent => :destroy, 
-                                       :conditions => {:dimension => dimension.to_s}, 
+                                       :conditions => ["dimension = ?", dimension], 
                                        :class_name => "Rate", 
                                        :as => :rateable
                                        
         has_many "#{dimension}_raters", :through => "#{dimension}_rates", :source => :rater         
         
         has_one "#{dimension}_average", :as => :cacheable, :class_name => "RatingCache", 
-                                        :dependent => :destroy, :conditions => {:dimension => dimension.to_s}
+                                        :dependent => :destroy, :conditions => ["dimension = ?", dimension]
       end                                                    
     end
   end
