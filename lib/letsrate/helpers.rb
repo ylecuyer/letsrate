@@ -12,6 +12,8 @@ module Helpers
     else
       avg = klass.avg
     end
+
+    avg = 3 if avg < 3 and dimension == "calificacion"
     
     star = options[:star] || 5
     
